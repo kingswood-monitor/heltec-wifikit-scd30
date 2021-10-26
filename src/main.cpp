@@ -1,15 +1,16 @@
 #include <Arduino.h>
 
 #include "heltec.h"
-#include "SparkFun_SCD30_Arduino_Library.h"
 #include <kwWiFi.h>
+#include <kwSCD30.h>
 
 // Required to avoid conflict with OLED
 // See: https://github.com/Heltec-Aaron-Lee/WiFi_Kit_series/issues/62
 #define PIN_SDA 4
 #define PIN_SCL 15
 
-SCD30 airSensor;
+#define TEMPERATURE_OFFSET -2.5 // degC
+kwSCD30 scd30(TEMPERATURE_OFFSET);
 
 void setup() {
   pinMode(LED,OUTPUT);
@@ -21,26 +22,19 @@ void setup() {
 
   WIFISetUp();
 
-  if (airSensor.begin() == false)
-  {
-    Serial.println("Air sensor not detected. Please check wiring. Freezing...");
-    while (1)
-      ;
-  }
+  bool ok = scd30.start();
+  Serial.printf("SCD30 sensor: %s\n", ok ? "OK" : "Not OK");
 
 }
 
 void loop() {
-  if (airSensor.dataAvailable())
+  if (scd30.hasData())
   {
+    char buf[5];
+    scd30.getTemperature(buf);
+    
     Serial.print("co2(ppm):");
-    Serial.print(airSensor.getCO2());
-
-    Serial.print(" temp(C):");
-    Serial.print(airSensor.getTemperature(), 1);
-
-    Serial.print(" humidity(%):");
-    Serial.print(airSensor.getHumidity(), 1);
+    Serial.print(buf);
 
     Serial.println();
   }
