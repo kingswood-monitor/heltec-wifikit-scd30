@@ -30,11 +30,15 @@ class kwSCD30
         kwSCD30();
 
         bool start();
-        bool dataAvilable();
+        bool dataAvailable();
 
         float temperature();
         uint8_t humidity();
         uint16_t co2();
+
+        void temperature(char *pBuffer);
+        void humidity(char *pBuffer);
+        void co2(char *pBuffer);
 
         void setTemperatureOffset(float offset);
 };
