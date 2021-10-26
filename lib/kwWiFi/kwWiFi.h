@@ -5,9 +5,10 @@
 #include "WiFi.h"
 
 // WiFi
-#define WIFI_SSID "Kingswood"
+#define WIFI_SSID "kingswoodpn"
 #define WIFI_PASSWORD "wbtc0rar"
 
 void WIFISetUp(void);
+void connectToWifi();
 
 #endif

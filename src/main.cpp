@@ -1,5 +1,5 @@
 #include <Arduino.h>
-
+#include "globals.h"
 #include "heltec.h"
 #include <kwWiFi.h>
 #include <kwSCD30.h>
@@ -20,7 +20,9 @@ void setup() {
   Wire.begin(PIN_SDA, PIN_SCL);
   Heltec.begin(true /*DisplayEnable Enable*/, false /*LoRa Enable*/, true /*Serial Enable*/);
 
-  WIFISetUp();
+  wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
+
+  connectToWifi();
 
   bool ok = scd30.start();
   Serial.printf("SCD30 sensor: %s\n", ok ? "OK" : "Not OK");

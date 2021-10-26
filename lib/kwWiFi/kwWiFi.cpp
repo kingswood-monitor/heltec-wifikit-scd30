@@ -1,15 +1,15 @@
 #include "kwWiFi.h"
 
-void WIFISetUp(void)
-{
-  WiFi.disconnect(true);
-	delay(1000);
-	WiFi.mode(WIFI_STA);
-	WiFi.setAutoConnect(true);
-	WiFi.begin("kingswoodpn","wbtc0rar");
-	delay(100);
 
+void connectToWifi() 
+{  
   Serial.print("Connecting");
+
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_STA);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
   byte count = 0;
 	while(WiFi.status() != WL_CONNECTED && count < 10)
 	{
@@ -27,5 +27,6 @@ void WIFISetUp(void)
   {
     Serial.println("Failed");
   }
+  
   Serial.println("WiFi setup done.");
 }
