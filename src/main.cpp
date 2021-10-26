@@ -10,7 +10,7 @@
 #define PIN_SCL 15
 
 #define TEMPERATURE_OFFSET -2.5 // degC
-kwSCD30 scd30(TEMPERATURE_OFFSET);
+kwSCD30 scd30;
 
 void setup() {
   pinMode(LED,OUTPUT);
@@ -28,15 +28,8 @@ void setup() {
 }
 
 void loop() {
-  if (scd30.hasData())
+  if (scd30.dataAvilable())
   {
-    char buf[5];
-    scd30.getTemperature(buf);
-    
-    Serial.print("co2(ppm):");
-    Serial.print(buf);
-
-    Serial.println();
+    Serial.printf("temp(degC) %.1f humidity(%%) %d co2(ppm)  %d\n", scd30.temperature(), scd30.humidity(), scd30.co2());
   }
-  delay(500);
 }
