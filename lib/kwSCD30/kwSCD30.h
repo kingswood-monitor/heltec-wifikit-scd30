@@ -1,18 +1,8 @@
-/**
- * @file kwSCD30.h
- * @version 1.0
- *
- * Copyright (C) 2021, Richard Lyon
- */
-
 #ifndef kwSCD30_H
 #define kwSCD30_H
 
 #include "SparkFun_SCD30_Arduino_Library.h"
 
-/**
- * The payload structure
- */
 typedef struct {
   float temperature;
   uint8_t humidity;

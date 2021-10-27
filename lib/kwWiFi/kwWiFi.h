@@ -3,8 +3,6 @@
 
 #include "heltec.h"
 #include "WiFi.h"
-
-// #include "globals.h"
 #include <kwMQTT.h>
 
 #define WIFI_SSID "kingswoodpn"

@@ -11,8 +11,6 @@
 
 #define SENSOR_TYPE "environment"
 
-int g_sampleIntervalSeconds = 2;
-
 void getMacAddress(char* buf)
 {
   String theAddress = WiFi.macAddress();
@@ -22,9 +20,6 @@ void getMacAddress(char* buf)
 
 void setup() 
 {
-  pinMode(LED,OUTPUT);
-	digitalWrite(LED,LOW);
-  
   Serial.begin(115200);
   Wire.begin(PIN_SDA, PIN_SCL);
   Heltec.begin(true /*DisplayEnable Enable*/, false /*LoRa Enable*/, true /*Serial Enable*/);
@@ -32,22 +27,9 @@ void setup()
   getMacAddress(g_deviceID);
   bool ok = scd30.start();
 
-  Serial.printf("-----------%s sensor-------------------\n", SENSOR_TYPE);
-  Serial.printf("Firmware: %s\n", g_firmwareVersion);
-  Serial.printf("Device ID: %s\n", g_deviceID);
-  
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToWifi));
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectToMqtt));
   publishDataTimer = xTimerCreate("publishDataTimer", pdMS_TO_TICKS(g_sampleIntervalSeconds * 1000), pdTRUE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(publishData));
-
-  Heltec.display -> clear();
-  Heltec.display -> drawString(0, 0, "Device ID:");
-  Heltec.display -> drawString(COL2, 0, g_deviceID);
-  Heltec.display -> drawString(0, 10, "Firmware:");
-  Heltec.display -> drawString(COL2, 10, g_firmwareVersion);
-  Heltec.display -> drawString(0, 20, "Sensor:");
-  Heltec.display -> drawString(COL2, 20, ok ? "OK" : "-");
-  Heltec.display -> display();
 
   makeTopic("meta", "status", topicMetaStatus);
   makeTopic("meta", "firmware", topicMetaFirmware);
@@ -55,6 +37,8 @@ void setup()
   makeTopic("data", "humidity", "SCD30", topicDataHumiditySCD30);
   makeTopic("data", "co2", "SCD30", topicDataCO2SCD30);
   // TODO: Add Command topics
+
+  WiFi.onEvent(WiFiEvent);
 
   mqttClient.setServer(MQTT_HOST, MQTT_PORT);
   mqttClient.setWill(topicMetaStatus, 2, 1, "OFFLINE", 7);
@@ -65,13 +49,24 @@ void setup()
   mqttClient.onUnsubscribe(onMqttUnsubscribe);
   mqttClient.onMessage(onMqttMessage);
 
+  Heltec.display -> clear();
+  Heltec.display -> drawString(0, 0, "Device ID:");
+  Heltec.display -> drawString(COL2, 0, g_deviceID);
+  Heltec.display -> drawString(0, 10, "Firmware:");
+  Heltec.display -> drawString(COL2, 10, g_firmwareVersion);
+  Heltec.display -> drawString(0, 20, "Sensor:");
+  Heltec.display -> drawString(COL2, 20, ok ? "OK" : "-");
+  Heltec.display -> display();
+
+  Serial.printf("------------------%s sensor------------------\n", SENSOR_TYPE);
+  Serial.printf("Firmware: %s\n", g_firmwareVersion);
+  Serial.printf("Device ID: %s\n", g_deviceID);
   Serial.printf("MQTT Temperature : %s\n", topicDataTemperatureSCD30);
   Serial.printf("MQTT Humidity    : %s\n", topicDataHumiditySCD30);
   Serial.printf("MQTT CO2         : %s\n", topicDataCO2SCD30);
   Serial.printf("MQTT Status      : %s\n", topicMetaStatus);
   Serial.printf("MQTT Firmware    : %s\n", topicMetaFirmware);
 
-  WiFi.onEvent(WiFiEvent);
   connectToWifi();
 }
 

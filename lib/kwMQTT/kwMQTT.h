@@ -29,56 +29,9 @@ char topicDataTemperatureSCD30[MAX_TOPIC_BUFFER_LEN];
 char topicDataHumiditySCD30[MAX_TOPIC_BUFFER_LEN];
 char topicDataCO2SCD30[MAX_TOPIC_BUFFER_LEN];
 
-void makeTopic(const char* type, const char* field, const char* g_sensorType, char* buf) 
-{
-  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s/%s/%s", topicRoot, type, field, g_sensorType, g_deviceID);
-}
-
-void makeTopic(const char* type, const char* field, char* buf) 
-{
-  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s/%s", topicRoot, type, field, g_deviceID);
-}
-
-void makeTopic(const char* type, char* buf) 
-{
-  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s", topicRoot, type, g_deviceID);
-}
-
 void connectToMqtt() {
   mqttClient.connect();
 }
-
-void onMqttConnect(bool sessionPresent) 
-{
-  digitalWrite(LED, HIGH);
-  
-  mqttClient.publish(topicMetaFirmware, 2, true, g_firmwareVersion);
-  mqttClient.publish(topicMetaStatus, 2, true, "ONLINE");
-
-  // TODO: Add Command subscriptions
-  
-  xTimerStart(publishDataTimer, 0);
-}
-
-void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) 
-{
-  Heltec.display -> clear();
-  Heltec.display -> drawString(0, 0, "MQTT disconnected. Reconnecting...");
-  Heltec.display -> display();
-            
-  if (WiFi.isConnected()) {
-    xTimerStart(mqttReconnectTimer, 0);
-  }
-}
-
-void onMqttPublish(uint16_t packetId)
-{
-  Serial.printf("temp(degC) %.1f humidity(%%) %d co2(ppm)  %d\n", scd30.temperature(), scd30.humidity(), scd30.co2());
-}
-
-void onMqttSubscribe(uint16_t packetId, uint8_t qos) {}
-void onMqttUnsubscribe(uint16_t packetId) {}
-void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {}
 
 void publishData() 
 {
@@ -111,5 +64,54 @@ void publishData()
   }
 }
 
+void onMqttConnect(bool sessionPresent) 
+{
+  led.command(LED_ON);
+  
+  mqttClient.publish(topicMetaFirmware, 2, true, g_firmwareVersion);
+  mqttClient.publish(topicMetaStatus, 2, true, "ONLINE");
+
+  // TODO: Add Command subscriptions
+  
+  xTimerStart(publishDataTimer, 0);
+}
+
+void onMqttDisconnect(AsyncMqttClientDisconnectReason reason) 
+{
+  led.command(LED_OFF);
+
+  Heltec.display -> clear();
+  Heltec.display -> drawString(0, 0, "MQTT disconnected. Reconnecting...");
+  Heltec.display -> display();
+            
+  if (WiFi.isConnected()) {
+    xTimerStart(mqttReconnectTimer, 0);
+  }
+}
+
+void onMqttPublish(uint16_t packetId)
+{
+  led.command(LED_TOGGLE);
+  Serial.printf("temp(degC) %.1f humidity(%%) %d co2(ppm)  %d\n", scd30.temperature(), scd30.humidity(), scd30.co2());
+}
+
+void onMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {}
+void onMqttSubscribe(uint16_t packetId, uint8_t qos) {}
+void onMqttUnsubscribe(uint16_t packetId) {}
+
+void makeTopic(const char* type, const char* field, const char* g_sensorType, char* buf) 
+{
+  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s/%s/%s", topicRoot, type, field, g_sensorType, g_deviceID);
+}
+
+void makeTopic(const char* type, const char* field, char* buf) 
+{
+  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s/%s", topicRoot, type, field, g_deviceID);
+}
+
+void makeTopic(const char* type, char* buf) 
+{
+  snprintf(buf, MAX_TOPIC_BUFFER_LEN, "%s/%s/%s", topicRoot, type, g_deviceID);
+}
 
 #endif
