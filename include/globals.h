@@ -16,6 +16,7 @@ char g_deviceID[16] = { 0 };
 int g_sampleIntervalSeconds = 2;
 
 kwSCD30 scd30;
+
 kwLED led(LED);
 
 #endif
