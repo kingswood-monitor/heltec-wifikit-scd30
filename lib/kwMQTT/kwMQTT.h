@@ -59,8 +59,7 @@ void publishData()
     
     Heltec.display -> display();
 
-    // TODO: Flash LED
-
+    led.command(LED_FLASH_ONCE);
   }
 }
 
@@ -91,7 +90,6 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttPublish(uint16_t packetId)
 {
-  led.command(LED_TOGGLE);
   Serial.printf("temp(degC) %.1f humidity(%%) %d co2(ppm)  %d\n", scd30.temperature(), scd30.humidity(), scd30.co2());
 }
 

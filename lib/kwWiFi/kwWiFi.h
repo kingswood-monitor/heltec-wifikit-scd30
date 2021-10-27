@@ -8,6 +8,8 @@
 #define WIFI_SSID "kingswoodpn"
 #define WIFI_PASSWORD "wbtc0rar"
 
+TimerHandle_t wifiReconnectTimer;
+
 void connectToWifi() 
 {  
   WiFi.disconnect(true);

@@ -15,8 +15,6 @@ const char *g_firmwareVersion = "1.1.0";
 char g_deviceID[16] = { 0 };
 int g_sampleIntervalSeconds = 2;
 
-TimerHandle_t wifiReconnectTimer;
-
 kwSCD30 scd30;
 kwLED led(LED);
 
