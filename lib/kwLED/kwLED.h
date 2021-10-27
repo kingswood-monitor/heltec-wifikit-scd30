@@ -15,13 +15,21 @@ typedef enum {
 
 class kwLED
 {
-    private:
-        int m_pin;
-        bool m_state = LOW;
+public:
+    kwLED(int pin);
+    void command(led_id_t command);
+    void Callback();
+    
+    size_t getID();
 
-    public:
-        kwLED(int pin);
-        void command(led_id_t command);
+protected:
+    int m_pin;
+    bool m_state = LOW;
+    
+    TimerHandle_t handle;
+    static void callback(TimerHandle_t _handle);
+    size_t id;
+
 };
 
 
@@ -31,8 +39,25 @@ kwLED::kwLED(int pin)
     m_pin = pin;
     pinMode(m_pin, OUTPUT);
     digitalWrite(m_pin, LOW);
+
+    this->handle = xTimerCreate(
+        "ledTimer",
+        pdMS_TO_TICKS(200),
+        pdFALSE,
+        this,
+        callback);
 }
 
+void kwLED::callback(TimerHandle_t _handle)
+{
+    kwLED* p = static_cast<kwLED*>(pvTimerGetTimerID(_handle));
+    p->Callback();
+}
+
+void kwLED::Callback()
+{
+
+}
 
 void kwLED::command(led_id_t command)
 {
@@ -59,8 +84,17 @@ void kwLED::command(led_id_t command)
                 m_state = LOW;
             }
             break;
+        
+        case LED_FLASH_ONCE:
+            digitalWrite(m_pin, HIGH);
+            m_state = HIGH;
+
     }
 }
 
+size_t kwLED::getID()
+{
+    return this->id;
+}
 
 #endif
