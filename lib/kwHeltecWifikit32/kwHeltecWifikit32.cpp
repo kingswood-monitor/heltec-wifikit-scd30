@@ -6,6 +6,10 @@ PubSubClient mqttClient(wifiClient);
 
 char buf[10] = {0};
 
+uint8_t col0 = 0;  // First value column
+uint8_t col1 = 0;  // Last value column.
+uint8_t rows;      // Rows per line.
+
 // PUBLIC ///////////////////////////////////////////////////////////////////////
 
 // kwHeltecWifikit32 constructor
@@ -92,11 +96,17 @@ uint8_t kwHeltecWifikit32::registerMetaTopic(std::string topicName)
 }
 
 // Publish 
+
+void clearValue(uint8_t row) {oled.clear(col0, col1, row, row + row - 1); }
+
 void kwHeltecWifikit32::publish(uint8_t fieldID, uint16_t data)
 {
     sprintf(buf, "%d", data);
     const char* topic = dataTopics[fieldID].topicString.c_str();
     mqttClient.publish(topic, buf);
+
+    clearValue( fieldID * oled.fontRows());
+    oled.print(data, 1);
 }
 
 void kwHeltecWifikit32::publish(uint8_t fieldID, float data)
@@ -104,14 +114,40 @@ void kwHeltecWifikit32::publish(uint8_t fieldID, float data)
     sprintf(buf, "%.1f", data);
     const char* topic = dataTopics[fieldID].topicString.c_str();
     mqttClient.publish(topic, buf);
+
+    clearValue( fieldID * oled.fontRows());
+    oled.print(data, 1);
+}
+
+void kwHeltecWifikit32::display()
+{
+    if (!didSetUpForm) { setUpForm() ;}
 }
 
 // Display the labeled data at the specified row
-void kwHeltecWifikit32::display(const char* data, int row)
+void kwHeltecWifikit32::setUpForm()
 {
-    oled.setCursor(0, row);
-    oled.print(data);
-    oled.clearToEOL();
+    oled.clear();
+    // Setup form and find longest labels
+    for (uint8_t i = 0; i < dataTopics.size(); ++i)
+    {
+        const char *fieldName = dataTopics[i].fieldName.c_str();
+        oled.println(fieldName);
+        uint8_t w = oled.strWidth(fieldName);
+        col0 = col0 < w ? w : col0; 
+    }
+
+    col0 += 3;
+    col1 = col0 + oled.strWidth("4000") + 2;
+
+    // Print units
+    for (uint8_t i = 0; i < dataTopics.size(); ++i)
+    {
+        oled.setCursor(col1 + 1, i * oled.fontRows());
+        oled.print(dataTopics[i].units.c_str());
+    }
+
+    didSetUpForm = true;
 }
 
 // Run - keep MQTT alive and process commands
