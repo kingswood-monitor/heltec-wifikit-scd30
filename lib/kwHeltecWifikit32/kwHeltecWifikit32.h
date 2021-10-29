@@ -36,23 +36,24 @@ public:
   void publish(uint8_t fieldID, uint16_t data);
   void publish(uint8_t fieldID, float data);
   
-  void display(const char* data, int row);
+  void display();
   void run();
   
   char deviceID[16] = {0};
 
-  uint8_t statusTopicID;
-
   std::vector<dataField> dataTopics;
   std::vector<std::string> metaTopics;
   std::vector<std::string> commands;
-
+  uint8_t statusTopicID;
 
 private:
   void getMacAddress();
   void updateSystemStatus(std::string statusMessage);
   static void mqttCallback(char* topic, byte* payload, unsigned int length);
   boolean mqttReconnect();
+  void setUpForm();
+
+  bool didSetUpForm = false;
 
   std::string topicRoot = "kw_sensors";
   bool didInitialiseMTTQ = false;

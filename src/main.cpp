@@ -19,11 +19,6 @@
 #define MQTT_PORT 1883
 #define TOPIC_ROOT "kw_sensors"
 
-// MQTT topics
-// char topicDataBoilerStateLED[MAX_TOPIC_BUFFER_LEN];
-// char topicDataBoilerCumulativeLED[MAX_TOPIC_BUFFER_LEN];
-// char topicCommandResetTimer[MAX_TOPIC_BUFFER_LEN];
-
 uint8_t temperatureField;
 uint8_t humidityField;
 uint8_t co2Field;
@@ -35,10 +30,10 @@ kwTimer publishDataTimer = kwTimer();
 void setup() 
 {
     Serial.begin(115200);
-    heltec.initDisplay(PIN_RST, PIN_SDA, PIN_SCL, true);
+    heltec.initDisplay(PIN_RST, PIN_SDA, PIN_SCL);
 
-    temperatureField = heltec.registerDataTopic("temperature", "degC", "temperature", "SCD30");
-    humidityField = heltec.registerDataTopic("humidity", "%", "humidity", "SCD30");
+    temperatureField = heltec.registerDataTopic("Temp", "degC", "temperature", "SCD30");
+    humidityField = heltec.registerDataTopic("Hum", "%", "humidity", "SCD30");
     co2Field = heltec.registerDataTopic("CO2", "ppm", "co2", "SCD30");
     
     Serial.printf("\n------------------%s sensor------------------------------------------------\n\n", SENSOR_TYPE);
@@ -65,6 +60,8 @@ void loop()
       heltec.publish(temperatureField, scd30.temperature());
       heltec.publish(humidityField, scd30.humidity());
       heltec.publish(co2Field, scd30.co2());
+
+      heltec.display();
   }
   
   heltec.run();
