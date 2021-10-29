@@ -23,7 +23,7 @@ class kwSCD30
         bool dataAvailable();
 
         float temperature();
-        uint8_t humidity();
+        uint16_t humidity();
         uint16_t co2();
 
         void temperature(char *pBuffer);

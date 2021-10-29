@@ -37,7 +37,7 @@ bool kwSCD30::dataAvailable()
 
 // Readings
 float kwSCD30::temperature() { return m_payload.temperature; }
-uint8_t kwSCD30::humidity() { return m_payload.humidity; }
+uint16_t kwSCD30::humidity() { return m_payload.humidity; }
 uint16_t kwSCD30::co2() { return m_payload.co2; }
 
 // Readings saved to a buffer for publishing
