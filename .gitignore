@@ -7,3 +7,5 @@
 .DS_Store
 /lib/kwBreather
 /include/secrets.h
+
+.vscode/
