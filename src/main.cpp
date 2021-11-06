@@ -1,12 +1,11 @@
 #include <Arduino.h>
+#include <SimpleTimer.h>
 #include <secrets.h>
 
-#include <BlynkSimpleEsp32.h>
 #include <kwHeltecWifikit32.h>
 #include <kwNeoTimer.h>
 #include <kwSCD30.h>
 
-#define BLYNK_PRINT        Serial
 #define SENSOR_TYPE        "energy"
 #define FIRMWARE_VERSION   "2.2.0"
 #define TOPIC_ROOT         "kw_sensors"
@@ -19,14 +18,14 @@ uint8_t co2Field;
 struct HeltecConfig config = {
     .ssid = WIFI_SSID,
     .pwd = WIFI_PASSWORD,
-    .mqtt_host = IPAddress( 192, 168, 1, 240 ),  // Mac Mini M1
+    .mqtt_host = IPAddress( 192, 168, 1, 240 ),  // MAc Mini M1
     .rotateDisplay = true,
     .firmwareVersion = FIRMWARE_VERSION,
     .topicRoot = TOPIC_ROOT };
 
 kwHeltecWifikit32 heltec{ config };
 kwSCD30           scd30;
-BlynkTimer        timer;
+SimpleTimer       timer;
 
 void printBanner();
 void publishEvent();
@@ -41,7 +40,6 @@ void setup()
   co2Field = heltec.registerField( "CO2", "ppm", "co2", "SCD30" );
 
   heltec.init();
-  Blynk.begin( BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASSWORD );
   scd30.start( TEMPERATURE_OFFSET );
 
   timer.setInterval( 1000L, publishEvent );
@@ -50,11 +48,8 @@ void setup()
 void loop()
 {
   heltec.run();
-  Blynk.run();
   timer.run();
 }
-
-BLYNK_CONNECTED() { Serial.println( "Connected to Blynk.Cloud" ); }
 
 void printBanner()
 {
@@ -78,17 +73,11 @@ void printBanner()
 
 void publishEvent()
 {
-  Blynk.virtualWrite( V0, millis() / 1000 );
-
   if ( scd30.dataAvailable() )
   {
     heltec.publish( temperatureField, scd30.temperature() );
     heltec.publish( humidityField, scd30.humidity() );
     heltec.publish( co2Field, scd30.co2() );
-
-    Blynk.virtualWrite( V1, scd30.temperature() );
-    Blynk.virtualWrite( V2, scd30.humidity() );
-    Blynk.virtualWrite( V3, scd30.co2() );
 
     heltec.update( temperatureField, scd30.temperature() );
     heltec.update( humidityField, scd30.humidity() );
