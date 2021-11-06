@@ -7,7 +7,7 @@
 #include <kwSCD30.h>
 
 #define SENSOR_TYPE        "energy"
-#define FIRMWARE_VERSION   "2.2.0"
+#define FIRMWARE_VERSION   "2.2.1"
 #define TOPIC_ROOT         "kw_sensors"
 #define TEMPERATURE_OFFSET 2.5
 
@@ -16,8 +16,9 @@ uint8_t humidityField;
 uint8_t co2Field;
 
 struct HeltecConfig config = {
-    .ssid = WIFI_SSID,
-    .pwd = WIFI_PASSWORD,
+    .ap1 = accessPoint{ WIFI_SSID1, WIFI_PASSWORD1 },
+    .ap2 = accessPoint{ WIFI_SSID2, WIFI_PASSWORD2 },
+    .ap3 = accessPoint{ WIFI_SSID3, WIFI_PASSWORD3 },
     .mqtt_host = IPAddress( 192, 168, 1, 240 ),  // MAc Mini M1
     .rotateDisplay = true,
     .firmwareVersion = FIRMWARE_VERSION,
