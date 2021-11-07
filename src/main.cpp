@@ -1,48 +1,119 @@
+#include "pb.h"
+#include "pb_common.h"
+#include "pb_encode.h"
 #include <Arduino.h>
-#include <SimpleTimer.h>
 #include <secrets.h>
 
 #include <kwHeltecWifikit32.h>
-#include <kwNeoTimer.h>
 #include <kwSCD30.h>
+#include <kwSimpletimer.h>
+#include <packet.pb.h>
 
 #define SENSOR_TYPE        "energy"
-#define FIRMWARE_VERSION   "2.2.1"
-#define TOPIC_ROOT         "kw_sensors"
+#define FIRMWARE_VERSION   "3.0.0"
 #define TEMPERATURE_OFFSET 2.5
-
-uint8_t temperatureField;
-uint8_t humidityField;
-uint8_t co2Field;
+#define PROTO_BUF_LENGTH   100
 
 struct HeltecConfig config = {
     .ap1 = accessPoint{ WIFI_SSID1, WIFI_PASSWORD1 },
     .ap2 = accessPoint{ WIFI_SSID2, WIFI_PASSWORD2 },
     .ap3 = accessPoint{ WIFI_SSID3, WIFI_PASSWORD3 },
-    .mqtt_host = IPAddress( 192, 168, 1, 240 ),  // MAc Mini M1
     .rotateDisplay = true,
     .firmwareVersion = FIRMWARE_VERSION,
-    .topicRoot = TOPIC_ROOT };
+};
 
 kwHeltecWifikit32 heltec{ config };
 kwSCD30           scd30;
-SimpleTimer       timer;
+kwSimpletimer     timer;
+AsyncWebServer    server( 80 );
+AsyncWebSocket    ws( "/ws" );
 
-void printBanner();
-void publishEvent();
+uint32_t packetID = 0;
+
+bool encodeField( pb_ostream_t *ostream, const pb_field_iter_t *field,
+                  SensorField *sensorField )
+{
+  if ( !( pb_encode_tag_for_field( ostream, field ) &&
+          pb_encode_submessage( ostream, SensorField_fields, sensorField ) ) )
+  {
+    log_e( "Failed to encode temperature field: %s ", ostream->errmsg );
+    return false;
+  }
+  return true;
+}
+
+bool encodeFields( pb_ostream_t *ostream, const pb_field_iter_t *field,
+                   void *const *arg )
+{
+  bool isOK = false;
+
+  SensorField sensorField = SensorField_init_default;
+  sensorField.sensor_name = SensorName_SCD30;
+
+  sensorField.which_type = SensorField_temperature_tag;
+  sensorField.type.temperature = scd30.temperature() - TEMPERATURE_OFFSET;
+  isOK |= encodeField( ostream, field, &sensorField );
+
+  sensorField.which_type = SensorField_humidity_tag;
+  sensorField.type.humidity = scd30.humidity();
+  isOK |= encodeField( ostream, field, &sensorField );
+
+  sensorField.which_type = SensorField_humidity_tag;
+  sensorField.type.humidity = scd30.co2();
+  isOK |= encodeField( ostream, field, &sensorField );
+
+  return isOK;
+}
+
+void publishEvent()
+{
+  if ( scd30.dataAvailable() )
+  {
+    uint8_t      buffer[PROTO_BUF_LENGTH] = { 0 };
+    pb_ostream_t ostream = pb_ostream_from_buffer( buffer, sizeof( buffer ) );
+
+    Meta sensorMeta = Meta_init_default;
+    strcpy( sensorMeta.device_id, heltec.deviceID );
+    strcpy( sensorMeta.firmware, FIRMWARE_VERSION );
+
+    Packet packet = Packet_init_default;
+    packet.has_meta = true;
+    packet.measurement_type = MeasurementType_environment;
+    packet.meta = sensorMeta;
+
+    packet.packet_id = packetID++;
+    packet.sensorFields.funcs.encode = encodeFields;
+
+    if ( !pb_encode( &ostream, Packet_fields, &packet ) )
+    {
+      log_e( "Failed to encode: %s", ostream.errmsg );
+      return;
+    }
+
+    // for ( int i = 0; i < ostream.bytes_written; i++ )
+    // {
+    //   Serial.printf( "%02X", buffer[i] );
+    // }
+
+    ws.binaryAll( buffer, ostream.bytes_written );
+
+    // heltec.update( temperatureField, scd30.temperature() );
+    // heltec.update( humidityField, scd30.humidity() );
+    // heltec.update( co2Field, scd30.co2() );
+
+    log_i( "Temp: %.1f, Humidity: %d, CO2: %d", scd30.temperature(),
+           scd30.humidity(), scd30.co2() );
+  }
+}
 
 void setup()
 {
   Serial.begin( 115200 );
-
-  temperatureField =
-      heltec.registerField( "Temp", "degC", "temperature", "SCD30" );
-  humidityField = heltec.registerField( "Hum", "%", "humidity", "SCD30" );
-  co2Field = heltec.registerField( "CO2", "ppm", "co2", "SCD30" );
-
   heltec.init();
   scd30.start( TEMPERATURE_OFFSET );
-
+  ws.onEvent( onWsEvent );
+  server.addHandler( &ws );
+  server.begin();
   timer.setInterval( 1000L, publishEvent );
 }
 
@@ -50,38 +121,4 @@ void loop()
 {
   heltec.run();
   timer.run();
-}
-
-void printBanner()
-{
-  Serial.printf(
-      "\n------------------%s "
-      "sensor------------------------------------------------\n\n",
-      SENSOR_TYPE );
-  Serial.printf( "%-12s : %s\n", "Firmware", FIRMWARE_VERSION );
-  Serial.printf( "%-12s : %s\n", "Device ID", heltec.deviceID );
-  Serial.printf( "%-12s : %s\n", "SCD30",
-                 scd30.hasSCD30() ? "OK" : "Not found" );
-  Serial.printf( "%-12s : %.1f degC\n", "Offset", scd30.temperatureOffset() );
-  Serial.printf( "%-12s : %s\n", "Status",
-                 heltec.metaTopics[heltec.statusTopicID].c_str() );
-  for ( int i = 0; i < heltec.dataTopics.size(); i++ )
-  {
-    Serial.printf( "%-12s : %s\n", heltec.dataTopics[i].fieldName.c_str(),
-                   heltec.dataTopics[i].topicString.c_str() );
-  }
-}
-
-void publishEvent()
-{
-  if ( scd30.dataAvailable() )
-  {
-    heltec.publish( temperatureField, scd30.temperature() );
-    heltec.publish( humidityField, scd30.humidity() );
-    heltec.publish( co2Field, scd30.co2() );
-
-    heltec.update( temperatureField, scd30.temperature() );
-    heltec.update( humidityField, scd30.humidity() );
-    heltec.update( co2Field, scd30.co2() );
-  }
 }
